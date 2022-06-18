@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.14;
+pragma solidity 0.8.15;
 
 contract Login {
     uint256 public ownerCount;
@@ -83,7 +83,7 @@ contract Login {
                 keccak256(abi.encodePacked(_password)) ==
                 keccak256(abi.encodePacked(adminIdToPassword[i]))
             ) {
-                return ("Admin", i);
+                return ("Admin", 0);
             }
         }
         for (uint256 i = 1; i <= studentCount; i++) {
