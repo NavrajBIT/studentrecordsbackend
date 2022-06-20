@@ -7,13 +7,8 @@ contract Attendance {
 
     uint256 public attendanceCount;
 
-    struct AttendanceMark {
-        uint256 studentId;
-        uint256 attendanceValue;
-        uint256 date;
-    }
-
-    mapping(uint256 => AttendanceMark) public dateToAttendanceMark;
+    mapping(uint256 => mapping(uint256 => uint256))
+        public dateTostudentIdToAttendanceMark;
 
     uint256 public ownerCount;
     mapping(address => uint256) public ownerToOwnerId;
@@ -56,8 +51,15 @@ contract Attendance {
         uint256 _attendanceValue,
         uint256 _date
     ) public onlyOwner {
-        dateToAttendanceMark[_date].studentId = _studentId;
-        dateToAttendanceMark[_date].attendanceValue = _attendanceValue;
-        dateToAttendanceMark[_date].date = _date;
+        dateTostudentIdToAttendanceMark[_date][_studentId] = _attendanceValue;
+    }
+
+    function getAttendance(uint256 _studentId, uint256 _date)
+        public
+        view
+        onlyOwner
+        returns (uint256 attendanceMark)
+    {
+        return dateTostudentIdToAttendanceMark[_date][_studentId];
     }
 }

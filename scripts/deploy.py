@@ -6,6 +6,7 @@ import json
 from brownie import chain
 import time
 from scripts.sampleData import studentData
+from scripts.poppulateDatabase import poppulatedata
 
 contract_data = {"mainContract": ""}
 
@@ -37,11 +38,7 @@ def deploy():
     tx.wait(1)
     tx = login_contract.addAdmin("Admin2", "Admin2", {"from": account})
     tx.wait(1)
-    for student in studentData:
-        tx = login_contract.addStudent(
-            student["name"], student["password"], student["id"], {"from": account}
-        )
-        tx.wait(1)
+    poppulatedata()
 
     contract_data["mainContract"] = admin_contract.address
     save_data()

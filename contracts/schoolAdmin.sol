@@ -82,6 +82,20 @@ contract SchoolAdmin {
         return _studentId;
     }
 
+    function getGenderKPI()
+        public
+        view
+        isAdmin
+        returns (
+            uint256 totalNumber,
+            uint256 maleNumber,
+            uint256 femaleNumber
+        )
+    {
+        uint256 _studentCount = studentData.studentCount();
+        return (_studentCount, maleStudents, femaleStudents);
+    }
+
     function getPrimaryDetails(uint256 _studentId)
         public
         view
@@ -234,6 +248,34 @@ contract SchoolAdmin {
         uint256 _aadharNumber,
         string memory _gender
     ) public isAdmin {
+        (, , , , string memory existingGender) = studentData
+            .studentIdToPersonalDetails(_studentId);
+
+        if (
+            keccak256(abi.encodePacked(existingGender)) ==
+            keccak256(abi.encodePacked("male"))
+        ) {
+            maleStudents = maleStudents - 1;
+        }
+        if (
+            keccak256(abi.encodePacked(existingGender)) ==
+            keccak256(abi.encodePacked("female"))
+        ) {
+            femaleStudents = femaleStudents - 1;
+        }
+        if (
+            keccak256(abi.encodePacked(_gender)) ==
+            keccak256(abi.encodePacked("male"))
+        ) {
+            maleStudents = maleStudents + 1;
+        }
+        if (
+            keccak256(abi.encodePacked(_gender)) ==
+            keccak256(abi.encodePacked("female"))
+        ) {
+            femaleStudents = femaleStudents + 1;
+        }
+
         studentData.addPersonalDetails(
             _studentId,
             _religion,
@@ -555,5 +597,14 @@ contract SchoolAdmin {
     ) public isAdmin {
         attendance.markAttendance(_studentId, _attendanceValue, _date);
         emit attendanceMarked(_studentId, _attendanceValue, _date);
+    }
+
+    function getAttendance(uint256 _studentId, uint256 _date)
+        public
+        view
+        isAdmin
+        returns (uint256 attendanceMark)
+    {
+        return attendance.getAttendance(_studentId, _date);
     }
 }
