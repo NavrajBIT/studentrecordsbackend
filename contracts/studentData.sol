@@ -14,6 +14,7 @@ contract StudentData {
         uint256 dob;
         uint256 rollNumber;
         uint256 grade;
+        string section;
         string email;
     }
     struct PersonalDetails {
@@ -109,6 +110,7 @@ contract StudentData {
         uint256 _dob,
         uint256 _rollNumber,
         uint256 _grade,
+        string memory _section,
         string memory _email
     ) public onlyOwner returns (uint256 _studentId) {
         require(
@@ -120,6 +122,8 @@ contract StudentData {
         studentIdToPrimaryDetails[studentCount].dob = _dob;
         studentIdToPrimaryDetails[studentCount].rollNumber = _rollNumber;
         studentIdToPrimaryDetails[studentCount].grade = _grade;
+        studentIdToPrimaryDetails[studentCount].section = _section;
+
         studentIdToPrimaryDetails[studentCount].email = _email;
         studentIdToRollNumber[studentCount] = _rollNumber;
         rollNumberToStudentId[_rollNumber] = studentCount;
@@ -131,6 +135,7 @@ contract StudentData {
         string memory _studentName,
         uint256 _dob,
         uint256 _grade,
+        string memory _section,
         string memory _email
     ) public onlyOwner {
         require(
@@ -140,6 +145,7 @@ contract StudentData {
         studentIdToPrimaryDetails[_studentId].studentName = _studentName;
         studentIdToPrimaryDetails[_studentId].dob = _dob;
         studentIdToPrimaryDetails[_studentId].grade = _grade;
+        studentIdToPrimaryDetails[_studentId].section = _section;
         studentIdToPrimaryDetails[_studentId].email = _email;
     }
 

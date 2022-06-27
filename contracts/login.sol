@@ -12,15 +12,21 @@ contract Login {
     mapping(uint256 => string) adminIdToName;
     mapping(uint256 => string) adminIdToPassword;
 
+    uint256 public superAdminCount;
+    mapping(uint256 => string) superAdminIdToName;
+    mapping(uint256 => string) superAdminIdToPassword;
+
     uint256 public studentCount;
     mapping(uint256 => string) studentIdToName;
     mapping(uint256 => string) studentIdToPassword;
     mapping(uint256 => uint256) studentIdTostudentId;
 
+    mapping(address => string) public walletToName;
+    mapping(address => string) public walletToType;
+
     constructor() {
         adminCount = 0;
         studentCount = 0;
-
         blockedOwnerCount = 0;
         ownerCount = 1;
         ownerToOwnerId[msg.sender] = ownerCount;
@@ -57,6 +63,19 @@ contract Login {
         adminCount = adminCount + 1;
         adminIdToName[adminCount] = _name;
         adminIdToPassword[adminCount] = _password;
+        walletToName[msg.sender] = _name;
+        walletToType[msg.sender] = "Admin";
+    }
+
+    function addSuperAdmin(string memory _name, string memory _password)
+        public
+        onlyOwner
+    {
+        superAdminCount = superAdminCount + 1;
+        superAdminIdToName[superAdminCount] = _name;
+        superAdminIdToPassword[superAdminCount] = _password;
+        walletToName[msg.sender] = _name;
+        walletToType[msg.sender] = "SuperAdmin";
     }
 
     function addStudent(
@@ -83,7 +102,17 @@ contract Login {
                 keccak256(abi.encodePacked(_password)) ==
                 keccak256(abi.encodePacked(adminIdToPassword[i]))
             ) {
-                return ("Admin", 0);
+                return ("Admin", i);
+            }
+        }
+        for (uint256 i = 1; i <= superAdminCount; i++) {
+            if (
+                keccak256(abi.encodePacked(_name)) ==
+                keccak256(abi.encodePacked(superAdminIdToName[i])) &&
+                keccak256(abi.encodePacked(_password)) ==
+                keccak256(abi.encodePacked(superAdminIdToPassword[i]))
+            ) {
+                return ("SuperAdmin", i);
             }
         }
         for (uint256 i = 1; i <= studentCount; i++) {

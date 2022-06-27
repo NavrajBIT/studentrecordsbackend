@@ -17,6 +17,7 @@ def poppulatedata():
         studentId = studentId + 1
         userName = "student" + str(studentId)
         tx = login_contract.addStudent(userName, "1234", studentId, {"from": account})
+        tx.wait(1)
         tx = admin_contract.addStudent(
             student["studentName"],
             student["dob"],

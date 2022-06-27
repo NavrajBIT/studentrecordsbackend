@@ -6,21 +6,39 @@ import "./studentData.sol";
 import "./schoolFiles.sol";
 import "./login.sol";
 import "./attendance.sol";
+import "./modification.sol";
+import "./academicPerformance.sol";
 
 contract SchoolAdmin {
     StudentData studentData;
     SchoolFiles schoolFiles;
     Login login;
     Attendance attendance;
-    address public admin;
+    Modification modification;
+    Performance performance;
+
+    uint256 public adminCount;
+    mapping(address => uint256) public adminToAdminId;
+
     uint256 public maleStudents;
     uint256 public femaleStudents;
+    mapping(uint256 => uint256) public gradeToNumberOfStudents;
+    mapping(uint256 => mapping(string => uint256))
+        private gradeToSectionToCount;
 
     event studentAdded(
         uint256 indexed _studentId,
         uint256 indexed _rollNumber,
         uint256 indexed _class
     );
+    event modifiedPrimaryDetails(uint256 indexed _studentId);
+    event modifiedPersonalDetails(uint256 indexed _studentId);
+    event modifiedPaternalDetails(uint256 indexed _studentId);
+    event modifiedMaternalDetails(uint256 indexed _studentId);
+    event modifiedGuardianDetails(uint256 indexed _studentId);
+    event modifiedFamilyDetails(uint256 indexed _studentId);
+    event modifiedFiles(uint256 indexed _studentId);
+    event modifiedNonAcademicDetails(uint256 indexed _studentId);
     event studentFound(uint256 indexed _studentId, uint256 indexed _rollNumber);
     event assignmentAdded(
         uint256 indexed _assignmentId,
@@ -48,18 +66,29 @@ contract SchoolAdmin {
         address _studentData,
         address _schoolFiles,
         address _login,
-        address _attendance
+        address _attendance,
+        address _modification,
+        address _performance
     ) {
         studentData = StudentData(_studentData);
         schoolFiles = SchoolFiles(_schoolFiles);
         login = Login(_login);
         attendance = Attendance(_attendance);
-        admin = msg.sender;
+        modification = Modification(_modification);
+        performance = Performance(_performance);
+        adminCount = 1;
+        adminToAdminId[msg.sender] = adminCount;
     }
 
     modifier isAdmin() {
-        require(msg.sender == admin, "You are not the admin");
+        require(adminToAdminId[msg.sender] > 0, "You are not the admin.");
         _;
+    }
+
+    function setAdmin(address _newAdmin) public isAdmin {
+        require(adminToAdminId[_newAdmin] == 0, "Admin already added.");
+        adminCount = adminCount + 1;
+        adminToAdminId[_newAdmin] = adminCount;
     }
 
     function getStudentCount()
@@ -105,6 +134,7 @@ contract SchoolAdmin {
             uint256 _dob,
             uint256 _rollNumber,
             uint256 _grade,
+            string memory _section,
             string memory _email
         )
     {
@@ -212,6 +242,7 @@ contract SchoolAdmin {
         uint256 _dob,
         uint256 _rollNumber,
         uint256 _grade,
+        string memory _section,
         string memory _email
     ) public isAdmin {
         uint256 _studentId = studentData.addStudent(
@@ -219,8 +250,14 @@ contract SchoolAdmin {
             _dob,
             _rollNumber,
             _grade,
+            _section,
             _email
         );
+        gradeToNumberOfStudents[_grade] = gradeToNumberOfStudents[_grade] + 1;
+
+        gradeToSectionToCount[_grade][_section] =
+            gradeToSectionToCount[_grade][_section] +
+            1;
         emit studentAdded(_studentId, _rollNumber, _grade);
     }
 
@@ -229,15 +266,39 @@ contract SchoolAdmin {
         string memory _studentName,
         uint256 _dob,
         uint256 _grade,
+        string memory _section,
         string memory _email
     ) public isAdmin {
+        (
+            ,
+            ,
+            ,
+            uint256 existingGrade,
+            string memory existingSection,
+
+        ) = studentData.studentIdToPrimaryDetails(_studentId);
+
+        gradeToNumberOfStudents[existingGrade] =
+            gradeToNumberOfStudents[existingGrade] -
+            1;
+        gradeToNumberOfStudents[_grade] = gradeToNumberOfStudents[_grade] + 1;
+
+        gradeToSectionToCount[existingGrade][existingSection] =
+            gradeToSectionToCount[existingGrade][existingSection] -
+            1;
+        gradeToSectionToCount[_grade][_section] =
+            gradeToSectionToCount[_grade][_section] +
+            1;
+
         studentData.modifyPrimaryDetails(
             _studentId,
             _studentName,
             _dob,
             _grade,
+            _section,
             _email
         );
+        emit modifiedPrimaryDetails(_studentId);
     }
 
     function addPersonalDetails(
@@ -284,6 +345,7 @@ contract SchoolAdmin {
             _aadharNumber,
             _gender
         );
+        emit modifiedPersonalDetails(_studentId);
     }
 
     function addPaternalDetails(
@@ -302,6 +364,7 @@ contract SchoolAdmin {
             _fatherOccupation,
             _fatherEducation
         );
+        emit modifiedPaternalDetails(_studentId);
     }
 
     function addMaternalDetails(
@@ -316,6 +379,7 @@ contract SchoolAdmin {
             _motherOccupation,
             _motherEducation
         );
+        emit modifiedMaternalDetails(_studentId);
     }
 
     function addGuardianDetails(
@@ -328,6 +392,7 @@ contract SchoolAdmin {
             _guardianName,
             _guardianAddress
         );
+        emit modifiedGuardianDetails(_studentId);
     }
 
     function addFamilyDetails(
@@ -342,6 +407,7 @@ contract SchoolAdmin {
             _primaryContact,
             _secondaryContact
         );
+        emit modifiedFamilyDetails(_studentId);
     }
 
     function addFiles(
@@ -360,6 +426,7 @@ contract SchoolAdmin {
             _uploadBirthCertificate,
             _uploadCasteCertificate
         );
+        emit modifiedFiles(_studentId);
     }
 
     function addNonAcademic(
@@ -380,6 +447,7 @@ contract SchoolAdmin {
             _personalityDevelopment,
             _personalityDevelopmentAchievements
         );
+        emit modifiedNonAcademicDetails(_studentId);
     }
 
     function searchStudent(string memory _name, uint256 _class) public isAdmin {
@@ -390,6 +458,7 @@ contract SchoolAdmin {
                 ,
                 uint256 studentRollNumber,
                 uint256 studentClass,
+                ,
 
             ) = studentData.studentIdToPrimaryDetails(studentId);
             if (
@@ -590,6 +659,15 @@ contract SchoolAdmin {
         return (_loginType, _id);
     }
 
+    function getAdminData(address admin)
+        public
+        view
+        isAdmin
+        returns (string memory name, string memory _type)
+    {
+        return (login.walletToName(admin), login.walletToType(admin));
+    }
+
     function markAttendance(
         uint256 _studentId,
         uint256 _attendanceValue,
@@ -606,5 +684,122 @@ contract SchoolAdmin {
         returns (uint256 attendanceMark)
     {
         return attendance.getAttendance(_studentId, _date);
+    }
+
+    function raiseRequest(
+        uint256 _studentId,
+        string memory _title,
+        string memory _file,
+        string memory _description
+    ) public isAdmin {
+        modification.raiseRequest(_studentId, _title, _file, _description);
+    }
+
+    function closeRequest(uint256 _requestId) public isAdmin {
+        modification.closeRequest(_requestId);
+    }
+
+    function rejectRequest(uint256 _requestId) public isAdmin {
+        modification.rejectRequest(_requestId);
+    }
+
+    function approveRequest(uint256 _requestId) public isAdmin {
+        modification.approveRequest(_requestId);
+    }
+
+    function getRequestCount()
+        public
+        view
+        isAdmin
+        returns (
+            uint256 requestCount,
+            uint256 pendingRequestCount,
+            uint256 rejectedRequestCount,
+            uint256 approvedRequestCount,
+            uint256 closedRequestCount
+        )
+    {
+        return (
+            modification.requestCount(),
+            modification.pendingRequestCount(),
+            modification.rejectedRequestCount(),
+            modification.approvedRequestCount(),
+            modification.closedRequestCount()
+        );
+    }
+
+    function getRequestData(uint256 _requestId)
+        public
+        view
+        returns (
+            uint256 studentId,
+            string memory title,
+            string memory description,
+            string memory file,
+            string memory status
+        )
+    {
+        uint256 _studentId = modification.requestIdToStudentId(_requestId);
+        string memory _title = modification.requestIdTotitle(_requestId);
+        string memory _description = modification.requestIdToDescription(
+            _requestId
+        );
+        string memory _status = modification.requestIdToStatus(_requestId);
+        string memory _file = modification.requestIdToFile(_requestId);
+        return (_studentId, _title, _description, _file, _status);
+    }
+
+    function addPerformanceIndicator(
+        uint256 _grade,
+        uint256 _batch,
+        uint256 _totalStudents,
+        uint256 _passedStudents,
+        uint256 _failedStudents
+    ) public isAdmin {
+        performance.addPerformanceIndicator(
+            _grade,
+            _batch,
+            _totalStudents,
+            _passedStudents,
+            _failedStudents
+        );
+    }
+
+    function getPerformanceIndicator(uint256 _batchId, uint256 _grade)
+        public
+        view
+        isAdmin
+        returns (
+            uint256 batch,
+            uint256 totalStudents,
+            uint256 passedStudents,
+            uint256 failedStudents
+        )
+    {
+        uint256 _batch = performance.getBatchFromId(_grade, _batchId);
+        (
+            uint256 _totalStudents,
+            uint256 _passedStudents,
+            uint256 _failedStudents
+        ) = performance.getPerformanceIndicator(_batch, _grade);
+        return (_batch, _totalStudents, _passedStudents, _failedStudents);
+    }
+
+    function getBatchCount(uint256 grade)
+        public
+        view
+        isAdmin
+        returns (uint256 batchCount)
+    {
+        return performance.gradeToBatchCount(grade);
+    }
+
+    function getStudentsInGradeSection(uint256 _grade, string memory _section)
+        public
+        view
+        isAdmin
+        returns (uint256 studentCount)
+    {
+        return gradeToSectionToCount[_grade][_section];
     }
 }
